@@ -3,11 +3,10 @@
 const path = require('path');
 const pkg = require('./package.json');
 const webpack = require('webpack');
-const {formatDate} = require('@liwb/cloud-utils');
+const {formatDate} = require('@winner-fed/cloud-utils');
 const CompressionWebpackPlugin = require('compression-webpack-plugin');
 const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin');
-const ProgressBarPlugin = require('progress-bar-webpack-plugin');
-const chalk = require('chalk');
+const WebpackBar = require('webpackbar');
 const VueRouterInvokeWebpackPlugin = require('@liwb/vue-router-invoke-webpack-plugin');
 const TerserPlugin = require('terser-webpack-plugin');
 const svnInfo = require('svn-info');
@@ -31,10 +30,7 @@ const getSvnInfo = () => {
 
 const genPlugins = () => {
   const plugins = [
-    new ProgressBarPlugin({
-      format: '  build [:bar] ' + chalk.green.bold(':percent') + ' (:elapsed seconds)',
-      clear: false
-    }),
+    new WebpackBar(),
     new VueRouterInvokeWebpackPlugin({
       dir: 'src/views',
       // must set the alias for the dir option which you have set
@@ -54,11 +50,12 @@ const genPlugins = () => {
       {
         filepath: path.resolve(__dirname, './public/config.local.js'),
         hash: true,
-      },
+      }<%_ if (options.application !== 'pc') { _%>,
       {
         filepath: path.resolve(__dirname, './public/console.js'),
         hash: true,
       }
+  <%_ } _%>
     ]),
   ];
 
@@ -178,10 +175,10 @@ module.exports = {
         // 文件别名
         'services': resolve('src/services'),
         'variable': resolve('src/assets/less/variable.less'),
-        'utils': resolve('node_modules/@liwb/cloud-utils/dist/cloud-utils.esm'),
-        'mixins': resolve('node_modules/magicless/magicless.less'),
+        'utils': resolve('node_modules/@winner-fed/cloud-utils/dist/cloud-utils.esm'),
+        'mixins': resolve('node_modules/@winner-fed/magicless/magicless.less'),
         <%_ if (options.application === 'offline') { _%>
-        'native-bridge-methods': resolve('node_modules/native-bridge-methods/dist/native-bridge-methods.esm')
+        'native-bridge-methods': resolve('node_modules/@winner-fed/native-bridge-methods/dist/native-bridge-methods.esm')
         <%_ } _%>
       }
     },
@@ -244,16 +241,30 @@ module.exports = {
         return args;
       });
 
+    // set preserveWhitespace
+    config.module
+      .rule('vue')
+      .use('vue-loader')
+      .loader('vue-loader')
+      .tap((options) => {
+        options.compilerOptions.preserveWhitespace = true;
+        return options;
+      })
+      .end();
+
     // optimization
     config
       .when(process.env.NODE_ENV === 'production',
         config => {
           config
             .plugin('ScriptExtHtmlWebpackPlugin')
+            .after('html')
             .use('script-ext-html-webpack-plugin', [{
               // `runtime` must same as runtimeChunk name. default is `runtime`
               inline: /runtime\..*\.js$/
-            }]);
+            }])
+            .end();
+
           config
             .optimization
             .splitChunks({

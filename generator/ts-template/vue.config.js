@@ -2,11 +2,15 @@
 
 const path = require('path');
 const webpack = require('webpack');
+const {formatDate} = require('@winner-fed/cloud-utils');
 const CompressionWebpackPlugin = require('compression-webpack-plugin');
 const AddAssetHtmlPlugin = require('add-asset-html-webpack-plugin');
-const ProgressBarPlugin = require('progress-bar-webpack-plugin');
-const chalk = require('chalk');
+const WebpackBar = require('webpackbar');
 const TerserPlugin = require('terser-webpack-plugin');
+<%_ if (options.language === 'ts' && options['mobile-ui-framework'] === 'vant') { _%>
+const tsImportPluginFactory = require('ts-import-plugin');
+const merge = require('webpack-merge');
+<%_ } _%>
 const svnInfo = require('svn-info');
 const pkg = require('./package.json');
 
@@ -29,20 +33,18 @@ const getSvnInfo = () => {
 
 const genPlugins = () => {
   const plugins = [
-    new ProgressBarPlugin({
-      format: '  build [:bar] ' + chalk.green.bold(':percent') + ' (:elapsed seconds)',
-      clear: false
-    }),
+    new WebpackBar(),
     // 为静态资源文件添加 hash，防止缓存
     new AddAssetHtmlPlugin([
       {
         filepath: path.resolve(__dirname, './public/config.local.js'),
         hash: true,
-      },
+      }<%_ if (options.application !== 'pc') { _%>,
       {
         filepath: path.resolve(__dirname, './public/console.js'),
         hash: true,
       }
+  <%_ } _%>
     ]),
   ];
 
@@ -168,10 +170,10 @@ module.exports = {
         // 文件别名
         'services': resolve('src/services'),
         'variable': resolve('src/assets/less/variable.less'),
-        'utils': resolve('node_modules/@liwb/cloud-utils/dist/cloud-utils.esm'),
-        'mixins': resolve('node_modules/magicless/magicless.less'),
+        'utils': resolve('node_modules/@winner-fed/cloud-utils/dist/cloud-utils.esm'),
+        'mixins': resolve('node_modules/@winner-fed/magicless/magicless.less'),
         <%_ if (options.application === 'offline') { _%>
-'native-bridge-methods': resolve('node_modules/native-bridge-methods/dist/native-bridge-methods.esm')
+'native-bridge-methods': resolve('node_modules/@winner-fed/native-bridge-methods/dist/native-bridge-methods.esm')
 <%_ } _%>
       }
     },
@@ -183,6 +185,30 @@ module.exports = {
   // see https://github.com/vuejs/vue-cli/blob/dev/docs/webpack.md
   chainWebpack: (config) => {
     // module
+  <%_ if (options.language === 'ts' && options['mobile-ui-framework'] === 'vant') { _%>
+    config.module
+      .rule('ts')
+      .use('ts-loader')
+      .tap(options => {
+        options = merge(options, {
+          transpileOnly: true,
+          getCustomTransformers: () => ({
+            before: [
+              tsImportPluginFactory({
+                libraryName: 'vant',
+                libraryDirectory: 'es',
+                style: true
+              })
+            ]
+          }),
+          compilerOptions: {
+            module: 'es2015'
+          }
+        });
+        return options;
+      })
+      .end();
+  <%_ } _%>
     // svg
     // exclude icons
     config.module
@@ -231,6 +257,17 @@ module.exports = {
         return args;
       });
 
+    // set preserveWhitespace
+    config.module
+      .rule('vue')
+      .use('vue-loader')
+      .loader('vue-loader')
+      .tap((options) => {
+        options.compilerOptions.preserveWhitespace = true;
+        return options;
+      })
+      .end();
+
     // optimization
     // https://imweb.io/topic/5b66dd601402769b60847149
     config
@@ -241,7 +278,9 @@ module.exports = {
             .use('script-ext-html-webpack-plugin', [{
               // `runtime` must same as runtimeChunk name. default is `runtime`
               inline: /runtime\..*\.js$/
-            }]);
+            }])
+            .end();
+
           config
             .optimization
             .splitChunks({
