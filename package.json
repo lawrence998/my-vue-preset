@@ -10,6 +10,7 @@
     "docs:dev": "vuepress dev docs",
     "docs:build": "vuepress build docs",
     "deploy": "bash ./docs/deploy.sh",
+    "deploy:build": "vuepress build docs && gh-pages -d docs/.vuepress/dist",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
@@ -28,5 +29,8 @@
   "homepage": "https://github.com/lawrence998/my-vue-preset#readme",
   "devDependencies": {
     "vuepress": "^0.14.8"
+  },
+  "dependencies": {
+    "gh-pages": "^2.2.0"
   }
 }

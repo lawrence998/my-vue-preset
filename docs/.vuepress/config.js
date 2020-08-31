@@ -1,7 +1,7 @@
 module.exports = {
-  base: '/vue-preset/',
+  base: '/my-vue-preset/',
   serviceWorker: true,
-  title: 'vue-preset 说明文档',
+  title: 'my-vue-preset 说明文档',
   head: [
     ['link', { rel: 'icon', href: './favicon.ico' }]
   ],
