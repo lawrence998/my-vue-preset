@@ -28,7 +28,7 @@
   },
   "homepage": "https://github.com/lawrence998/my-vue-preset#readme",
   "devDependencies": {
-    "vuepress": "^0.14.8"
+    "vuepress": "^1.9.7"
   },
   "dependencies": {
     "gh-pages": "^2.2.0"
